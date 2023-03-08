@@ -11,95 +11,34 @@ library("lubridate")
 library("plyr")
 library("dplyr")
 
-###### Let's define some functions we'll use later
-
-# dt = json_data
-# plot_name = NULL
-map_listens = function(dt,plot_name = NULL){
-  
-  dt = dt[order(endTime)
-  ][,timeofday := as.character(paste0(substr(endTime,12,13),":00"))
-  ][,timeofday := as.POSIXct(timeofday,format = "%H:%M",tz = my_tz)
-  ][,month := factor(month.abb[month(endTime)],
-                     levels = month.abb)]
-  plot_dt = dt[,.(h_tot = sum(msPlayed)/3.6e6),
-               by = .(timeofday,month)][rev(order(month))]
-  
-  q = ggplot(plot_dt,
-             aes(x = timeofday, y = month, fill = h_tot)) +
-    geom_tile(colour = "white") +
-    scale_x_datetime(labels = scales::date_format("%H:%M",
-                                                  tz = my_tz)) +
-    scale_fill_gradient(low = AEMOColours[["lightGrey"]],
-                        high = AEMOColours[["red"]]) +
-    # xlab("") +
-    # ylab("") + 
-    labs(x = "",y = "",fill = "Total hours") +
-    theme_classic()
-  print(q)
-  
-  if(!is.null(plot_name)){
-    jpeg(paste0(plot_name,".jpg"),width=1200,height=900,res=100,pointsize=15,quality = 100)
-    print(q)
-    dev.off()
-  }
-}
-
-map_artists = function(dt,sel_artists,filter_type,plot_name = NULL){
-  year_fav = dt[order(endTime) & artistName %in% sel_artists
-  ][,month := factor(month.abb[month(endTime)],
-                     levels = month.abb)]
-  if(tolower(filter_type) == "total hours"){
-    year_fav = year_fav[,.(V1 = sum(msPlayed)/3.6e6),
-                        by = .(artistName,month)]
-    fill_lab = "Total hours"
-  } else if (tolower(filter_type) == "unique songs"){
-    year_fav = year_fav[,.(V1 = .N),
-                        by = .(trackName,artistName,month)
-    ][,.(V1 = .N),
-      by = .(artistName,month)]
-    fill_lab = "Unique songs"
-  } else {
-    print("Please pick 'Total hours' or 'Unique songs'")
-  }
-  year_fav[,artistName := factor(artistName,levels = rev(sel_artists))]
-  
-  q = ggplot(year_fav,
-             aes(x = month, y = artistName, fill = V1)) +
-    geom_tile(colour = "white") +
-    scale_fill_gradient(low = AEMOColours[["lightGrey"]],
-                        high = AEMOColours[["red"]]) +
-    labs(x = "",y = "",fill = fill_lab) +
-    theme_classic()
-  print(q)
-  if(!is.null(plot_name)){
-    jpeg(paste0(plot_name,".jpg"),width=1200,height=900,res=100,pointsize=15,quality = 100)
-    print(q)
-    dev.off()
-  }
-}
-
-track_times = function(dt){
-  q = ggplot(dt,
-             aes(x = ms_tot/3.6e6,y = trackName)) +
-    geom_col() +
-    labs(y = "",x = "Listening hours") +
-    theme_classic()
-  print(q)
-}
 ###### Set your working directory
 script.dir = dirname(rstudioapi::getActiveDocumentContext()$path)
 setwd(script.dir)
-ddpcr::quiet(source("C:/Users/dho/OneDrive - Australian Energy Market Operator/Desktop/R/AEMOtemplate.R"),all = T)
+
+### Grab some plot functions we'll use later
+ddpcr::quiet(source("plot_fx.R"),all = T)
 
 ### Read your json data into R and convert it into a datatable (similar to python pandas dataframe)
-# Note: it's good practice to name the library you're using
-# just before you call a function from the library, eg. data.table::setDT()
-# this is to prevent confusion if two libraries have identical function names
+# # Note: it's good practice to name the library you're using
+# # just before you call a function from the library, eg. data.table::setDT()
+# # this is to prevent confusion if two libraries have identical function names
+# json_data = data.table::rbindlist(list(
+#   jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory0.json")),
+#   jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory1.json")),
+#   jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory2.json"))))
+
 json_data = data.table::rbindlist(list(
-  jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory0.json")),
-  jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory1.json")),
-  jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory2.json"))))
+  jsonlite::fromJSON(paste0(script.dir,"/MyData/endvideo.json"))))
+
+
+temp_list = base::list.files(paste0(script.dir,"/MyData"),
+                        pattern = "*.json")
+json_data = data.table()
+for(i in seq(1,length(temp))){
+  json_data = data.table::rbindlist(list(
+    json_data,
+    jsonlite::fromJSON(paste0(script.dir,"/MyData/",temp_list[i]))))
+}
 
 # this is an example of making changes 'in place'
 # doing this is really handy for large tables
