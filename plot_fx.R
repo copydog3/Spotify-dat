@@ -78,3 +78,31 @@ track_times = function(dt,plot_name = NULL){
     dev.off()
   }
 }
+
+plot_heartbeat = function(dt,choose_tf,sel_artist,plot_name = NULL){
+  heartbeat = dt[order(ts)]
+  if(tolower(choose_tf) == "qtr"){
+    heartbeat = json_data[,yearsum := zoo::as.yearqtr(ts)]
+  } else if (tolower(choose_tf) == "month"){
+    heartbeat = heartbeat[,yearsum := zoo::as.yearmon(ts)]
+  }
+  heartbeat = heartbeat[,.(h_tot = round(sum(ms_played)/3.6e6,1)),
+                        by = .(yearsum,artist_name)
+  ][h_tot > 0]
+  
+  q = ggplot(heartbeat[artist_name %in% sel_artist],
+             aes(x = yearsum,y = h_tot,colour = artist_name)) +
+    geom_line(size = 2) +
+    scale_color_brewer(palette = "Dark2") + 
+    labs(x = "",y = "Hours listened",colour = "") +
+    scale_y_continuous(limits = c(0,30)) +
+    theme_classic() +
+    theme(legend.position = "bottom")
+  print(q)
+  if(!is.null(plot_name)){
+    jpeg(paste0(script.dir,"/Results/",plot_name,".jpg"),
+         width=900,height=400,res=100,pointsize=15,quality = 100)
+    print(q)
+    dev.off()
+  }
+}
