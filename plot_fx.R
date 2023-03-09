@@ -15,7 +15,7 @@ map_listens = function(dt,plot_name = NULL){
     geom_tile(colour = "white") +
     scale_x_datetime(labels = scales::date_format("%H:%M",
                                                   tz = my_tz)) +
-    scale_fill_gradient(low = "#808080",
+    scale_fill_gradient(low = "#D3D3D3",
                         high = "#8B0000") +
     # xlab("") +
     # ylab("") + 
@@ -24,7 +24,7 @@ map_listens = function(dt,plot_name = NULL){
   print(q)
   
   if(!is.null(plot_name)){
-    jpeg(paste0(plot_name,".jpg"),width=1200,height=900,res=100,pointsize=15,quality = 100)
+    jpeg(paste0(script.dir,"/Results/",plot_name,".jpg"),width=700,height=500,res=100,pointsize=15,quality = 100)
     print(q)
     dev.off()
   }
@@ -52,23 +52,29 @@ map_artists = function(dt,sel_artists,filter_type,plot_name = NULL){
   q = ggplot(year_fav,
              aes(x = month, y = artistName, fill = V1)) +
     geom_tile(colour = "white") +
-    scale_fill_gradient(low = "#808080",
+    scale_fill_gradient(low = "#D3D3D3",
                         high = "#8B0000") +
     labs(x = "",y = "",fill = fill_lab) +
     theme_classic()
   print(q)
   if(!is.null(plot_name)){
-    jpeg(paste0(plot_name,".jpg"),width=1200,height=900,res=100,pointsize=15,quality = 100)
+    jpeg(paste0(script.dir,"/Results/",plot_name,".jpg"),width=700,height=500,res=100,pointsize=15,quality = 100)
     print(q)
     dev.off()
   }
 }
 
-track_times = function(dt){
+track_times = function(dt,plot_name = NULL){
   q = ggplot(dt,
-             aes(x = ms_tot/3.6e6,y = trackName)) +
+             aes(x = ms_tot/3.6e6,y = col_name,fill = artist_type)) +
     geom_col() +
-    labs(y = "",x = "Listening hours") +
+    labs(y = "",x = "Listening hours",fill = "") +
+    scale_fill_manual(values = c("#60A3D9","#003B73")) +
     theme_classic()
   print(q)
+  if(!is.null(plot_name)){
+    jpeg(paste0(script.dir,"/Results/",plot_name,".jpg"),width=700,height=300,res=100,pointsize=15,quality = 100)
+    print(q)
+    dev.off()
+  }
 }

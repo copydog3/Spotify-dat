@@ -27,17 +27,13 @@ ddpcr::quiet(source("plot_fx.R"),all = T)
 #   jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory1.json")),
 #   jsonlite::fromJSON(paste0(script.dir,"/Data/StreamingHistory2.json"))))
 
-json_data = data.table::rbindlist(list(
-  jsonlite::fromJSON(paste0(script.dir,"/MyData/endvideo.json"))))
-
-
-temp_list = base::list.files(paste0(script.dir,"/MyData"),
-                        pattern = "*.json")
+temp_list = base::list.files(paste0(script.dir,"/Data"),
+                        pattern = "StreamingHis*")
 json_data = data.table()
-for(i in seq(1,length(temp))){
+for(i in seq(1,length(temp_list))){
   json_data = data.table::rbindlist(list(
     json_data,
-    jsonlite::fromJSON(paste0(script.dir,"/MyData/",temp_list[i]))))
+    jsonlite::fromJSON(paste0(script.dir,"/Data/",temp_list[i]))))
 }
 
 # this is an example of making changes 'in place'
@@ -55,6 +51,7 @@ attr(json_data$endTime,"tzone")
 # naming the city you're in works as well
 my_tz = "Australia/Perth"
 json_data[,endTime := lubridate::with_tz(endTime,my_tz)]
+# json_data = json_data[!artistName %in% c("KILLBOY","FLETCHER")]
 
 ###### Analysis time!
 
@@ -62,6 +59,8 @@ json_data[,endTime := lubridate::with_tz(endTime,my_tz)]
 song_time = json_data[,.(ms_tot = sum(msPlayed)),
                       by = .(artistName,trackName)
 ][rev(order(ms_tot))]
+song_time[,long_listen := as.numeric(rownames(song_time))]
+
 print(head(song_time,5))
 
 ### Here's the 5 artists you spent the most time listening to:
@@ -87,16 +86,23 @@ print(artist_unique)
 ### Most artists are flavours of the month
 
 map_listens(json_data,NULL)
-map_listens(json_data[artistName %in% artist_unique$artistName],NULL)
-map_listens(json_data[artistName %in% artist_time$artistName],NULL)
-map_listens(json_data[artistName == "Linkin Park"],NULL)
+# map_listens(json_data[artistName %in% artist_unique$artistName],NULL)
+# map_listens(json_data[artistName %in% artist_time$artistName],NULL)
+# map_listens(json_data[artistName == "Linkin Park"],NULL)
 
-map_artists(json_data,artist_time$artistName,"Unique songs")
+# map_artists(json_data[!artistName %in% c("KILLBOY","FLETCHER")],
+#             artist_time$artistName[1:5],"Unique songs","Artist month")
 
 LP_faves = song_time[artistName == "Linkin Park"]
 LP_faves = LP_faves[,trackName:= factor(trackName,
                                         levels = rev(LP_faves$trackName))]
-track_times(LP_faves[1:10])
+song_time[,col_name := fifelse(long_listen <= 100,
+                             yes = paste("The 100 songs I","listen to most",sep = "\n"),
+                             no = "Everything else")
+          ][,artist_type := fifelse(artistName %in% head(fave_artist$artistName,10),
+                                    yes = paste("10 artists I","listen to most",sep = "\n"),
+                                    no = "Everyone else")]
+track_times(song_time,"Listening times")
 
 fave_reps = song_time[1:10][,trackName:= factor(trackName,
                                                 levels = rev(song_time$trackName[1:10]))]
